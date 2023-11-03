@@ -8,7 +8,7 @@
  *
  * @author tanglong3bf
  * @date 2023-10-20
- * @version v0.0.1
+ * @version v0.1.0
  */
 
 #pragma once
@@ -18,20 +18,39 @@
 #include <drogon/HttpAppFramework.h>
 #include <drogon/HttpClient.h>
 
+inline std::string classTypeName() noexcept(false)
+{
+    throw std::runtime_error(
+        "Normal functions DO NOT have member function classTypeName(). "
+        "Please use DECLARE_RPC_FUNC to declare functor.");
+}
+
 /**
  * @brief Custom functions can call this macro to simplify development.
  * Please see tl::tpc::Muelsyse::rpcCallSync<T>() for specific parameters.
  */
-#define RPC_CALL_SYNC(ret_type, ...)                                          \
-    auto rpcCaller = drogon::app().getPlugin<tl::rpc::Muelsyse>();            \
-    if constexpr (std::is_void_v<ret_type>)                                   \
-    {                                                                         \
-        rpcCaller->rpcCallSync<ret_type>(__FUNCTION__, {__VA_ARGS__});        \
-    }                                                                         \
-    else                                                                      \
-    {                                                                         \
-        return rpcCaller->rpcCallSync<ret_type>(__FUNCTION__, {__VA_ARGS__}); \
-    }
+#define RPC_CALL_SYNC(ret_type, ...)                               \
+    auto rpcCaller = drogon::app().getPlugin<tl::rpc::Muelsyse>(); \
+    std::string func_name{""};                                     \
+    try                                                            \
+    {                                                              \
+        func_name = classTypeName();                               \
+    }                                                              \
+    catch (const std::runtime_error &e)                            \
+    {                                                              \
+        func_name = __FUNCTION__;                                  \
+    }                                                              \
+    return rpcCaller->rpcCallSync<ret_type>(func_name, {__VA_ARGS__});
+
+/**
+ * @brief Custom functions defined using this macro can be placed in a namespace
+ */
+#define RPC_FUNC(ret_type, func_name, ...)                \
+    struct func_name : public drogon::DrObject<func_name> \
+    {                                                     \
+        ret_type operator()(__VA_ARGS__);                 \
+    } static func_name;                                   \
+    inline ret_type func_name::operator()(__VA_ARGS__)
 
 namespace tl::rpc
 {
@@ -298,15 +317,7 @@ T Muelsyse::rpcCallSync(const std::string &funcName,
             }
         }
 
-        if constexpr (std::is_void_v<T>)
-        {
-            rpcCallSync<void>(url, httpMethod, requestBody);
-            return;
-        }
-        else
-        {
-            return rpcCallSync<T>(url, httpMethod, requestBody);
-        }
+        return rpcCallSync<T>(url, httpMethod, requestBody);
     }
     if constexpr (!std::is_void_v<T>)
     {

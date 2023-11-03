@@ -1,11 +1,6 @@
 #include "../../src/Muelsyse.h"
 
-#include <chrono>
-#include <drogon/HttpClient.h>
-#include <drogon/HttpTypes.h>
 #include <gtest/gtest.h>
-#include <fstream>
-#include <thread>
 
 TEST(MuelsyseTest, ToJsonTest1)
 {
@@ -172,11 +167,12 @@ TEST(MuelsyseTest, RpcCallSyncTest4)
 }
 
 inline User complex(int id,
-                  std::string name,
-                  std::vector<User> userList,
-                  std::unordered_map<std::string, std::vector<int>> param)
+                    std::string name,
+                    std::vector<User> userList,
+                    std::unordered_map<std::string, std::vector<int>> param)
 {
-    RPC_CALL_SYNC(User, "_", id, "_", name, "user_list", userList, "param", param);
+    RPC_CALL_SYNC(
+        User, "_", id, "_", name, "user_list", userList, "param", param);
 }
 
 TEST(MuelsyseTest, RpcCallSyncTest5)
@@ -193,4 +189,19 @@ TEST(MuelsyseTest, RpcCallSyncTest5)
     EXPECT_EQ(233, user.id);
     EXPECT_STREQ("zhangsan", user.username.c_str());
     EXPECT_STREQ("fawaikuangtu", user.password.c_str());
+}
+
+namespace foo::bar
+{
+RPC_FUNC(Json::Value, funcWithNamespace, int a)
+{
+    RPC_CALL_SYNC(Json::Value, "a", a);
+}
+};  // namespace foo::bar
+
+TEST(MuelsyseTest, RpcCallSyncTest6)
+{
+    auto json = foo::bar::funcWithNamespace(1);
+    ASSERT_TRUE(json.isMember("hello"));
+    EXPECT_STREQ("world", json["hello"].asCString());
 }
