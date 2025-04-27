@@ -1,19 +1,17 @@
 /**
  * @file Muelsyse.h
- * @brief A plugin to simplify RPC for drogon projects.
+ * @brief Muelsyse is a drogon plugin used to simplify HTTP client operations.
  *
- * This project only supports synchronous interface calls and supports a small
+ * This project only provides synchronous interface and supports a limited
  * number of data types. Using C++20 syntax, such as concepts, I don’t like
- * SNIFAE
+ * SNIFAE.
  *
  * @author tanglong3bf
- * @date 2023-10-20
- * @version v0.1.0
+ * @date 2025-04-27
+ * @version v0.2.0
  */
 
 #pragma once
-
-#include <concepts>
 
 #include <drogon/HttpAppFramework.h>
 #include <drogon/HttpClient.h>
@@ -22,37 +20,37 @@ inline std::string classTypeName() noexcept(false)
 {
     throw std::runtime_error(
         "Normal functions DO NOT have member function classTypeName(). "
-        "Please use DECLARE_RPC_FUNC to declare functor.");
+        "Please use DECLARE_REST_FUNC to declare functor.");
 }
 
 /**
  * @brief Custom functions can call this macro to simplify development.
- * Please see tl::tpc::Muelsyse::rpcCallSync<T>() for specific parameters.
+ * Please see tl::tpc::Muelsyse::restCallSync<T>() for specific parameters.
  */
-#define RPC_CALL_SYNC(ret_type, ...)                               \
-    auto rpcCaller = drogon::app().getPlugin<tl::rpc::Muelsyse>(); \
-    std::string func_name{""};                                     \
-    try                                                            \
-    {                                                              \
-        func_name = classTypeName();                               \
-    }                                                              \
-    catch (const std::runtime_error &e)                            \
-    {                                                              \
-        func_name = __FUNCTION__;                                  \
-    }                                                              \
-    return rpcCaller->rpcCallSync<ret_type>(func_name, {__VA_ARGS__});
+#define REST_CALL_SYNC(ret_type, ...)                                \
+    auto restCaller = drogon::app().getPlugin<tl::rest::Muelsyse>(); \
+    std::string func_name{""};                                       \
+    try                                                              \
+    {                                                                \
+        func_name = classTypeName();                                 \
+    }                                                                \
+    catch (const std::runtime_error &e)                              \
+    {                                                                \
+        func_name = __FUNCTION__;                                    \
+    }                                                                \
+    return restCaller->restCallSync<ret_type>(func_name, {__VA_ARGS__});
 
 /**
  * @brief Custom functions defined using this macro can be placed in a namespace
  */
-#define RPC_FUNC(ret_type, func_name, ...)                \
+#define REST_FUNC(ret_type, func_name, ...)               \
     struct func_name : public drogon::DrObject<func_name> \
     {                                                     \
         ret_type operator()(__VA_ARGS__);                 \
     } static func_name;                                   \
     inline ret_type func_name::operator()(__VA_ARGS__)
 
-namespace tl::rpc
+namespace tl::rest
 {
 
 template <typename T>
@@ -145,8 +143,9 @@ class Argument
     template <typename T>
     Argument(const T &data)
     {
-        data_ = ::tl::rpc::toJson(data);
+        data_ = tl::rest::toJson(data);
     }
+
     const Json::Value &toJson() const
     {
         return data_;
@@ -162,14 +161,14 @@ class Argument
  * You can configure the function name, uri and HttpMethod in the configuration
  * file. See README.md for details.
  *
- * The `registerRpc` function is called in the `initAndStart` function to
+ * The `registerRest` function is called in the `initAndStart` function to
  * register each function.
  *
  * Each function does not need to be implemented by yourself. Use the
- * RPC_CALL_SYNC macro inside the function to automatically call rpcCallSync.
+ * REST_CALL_SYNC macro inside the function to automatically call restCallSync.
  *
  * In the README.md file, there are instructions and examples for using the
- * RPC_CALL_SYNC macro.
+ * REST_CALL_SYNC macro.
  */
 class Muelsyse : public drogon::Plugin<Muelsyse>
 {
@@ -177,6 +176,7 @@ class Muelsyse : public drogon::Plugin<Muelsyse>
     Muelsyse()
     {
     }
+
     /// This method must be called by drogon to initialize and start the plugin.
     /// It must be implemented by the user.
     void initAndStart(const Json::Value &config) override;
@@ -192,11 +192,11 @@ class Muelsyse : public drogon::Plugin<Muelsyse>
      * @param [in] url request url
      * @param [in] httpMethod request method
      */
-    void registerRpc(const std::string &func_name,
-                     const std::string &url,
-                     drogon::HttpMethod httpMethod)
+    void registerRest(const std::string &func_name,
+                      const std::string &url,
+                      drogon::HttpMethod httpMethod)
     {
-        rpcMap_[func_name] = std::make_pair(url, httpMethod);
+        restMap_[func_name] = std::make_pair(url, httpMethod);
     }
 
     /**
@@ -240,34 +240,35 @@ class Muelsyse : public drogon::Plugin<Muelsyse>
      * When the first item is a normal string, it means that the second item
      * will be placed in a sub-item of the request body.
      * @attention
-     * suggest: use RPC_CALL_SYNC to call this function.
+     * suggest: use REST_CALL_SYNC to call this function.
      */
     template <typename T>
-    T rpcCallSync(const std::string &funcName,
-                  const std::vector<Argument> &args) const noexcept(false);
+    T restCallSync(const std::string &funcName,
+                   const std::vector<Argument> &args) const noexcept(false);
 
     /**
      * @brief Calling remote procedures synchronously
      * @attention
-     * suggest: use RPC_CALL_SYNC to call this function.
+     * suggest: use REST_CALL_SYNC to call this function.
      */
     template <typename T>
-    T rpcCallSync(std::string url,
-                  drogon::HttpMethod httpMethod,
-                  const Json::Value &requestBody) const noexcept(false);
+    T restCallSync(std::string url,
+                   drogon::HttpMethod httpMethod,
+                   const Json::Value &requestBody) const noexcept(false);
 
   private:
     std::unordered_map<std::string, std::pair<std::string, drogon::HttpMethod>>
-        rpcMap_;
+        restMap_;
 };
 
 template <typename T>
-T Muelsyse::rpcCallSync(const std::string &funcName,
-                        const std::vector<Argument> &args) const noexcept(false)
+T Muelsyse::restCallSync(const std::string &funcName,
+                         const std::vector<Argument> &args) const
+    noexcept(false)
 {
-    if (this->rpcMap_.find(funcName) != rpcMap_.end())
+    if (this->restMap_.find(funcName) != restMap_.end())
     {
-        auto [url, httpMethod] = rpcMap_.at(funcName);
+        auto [url, httpMethod] = restMap_.at(funcName);
 
         if (!url.starts_with("http://") && !url.starts_with("https://"))
         {
@@ -317,7 +318,7 @@ T Muelsyse::rpcCallSync(const std::string &funcName,
             }
         }
 
-        return rpcCallSync<T>(url, httpMethod, requestBody);
+        return restCallSync<T>(url, httpMethod, requestBody);
     }
     if constexpr (!std::is_void_v<T>)
     {
@@ -326,9 +327,9 @@ T Muelsyse::rpcCallSync(const std::string &funcName,
 }
 
 template <typename T>
-T Muelsyse::rpcCallSync(std::string url,
-                        drogon::HttpMethod httpMethod,
-                        const Json::Value &requestBody) const noexcept(false)
+T Muelsyse::restCallSync(std::string url,
+                         drogon::HttpMethod httpMethod,
+                         const Json::Value &requestBody) const noexcept(false)
 {
     if (!url.starts_with("http://") && !url.starts_with("https://"))
     {
@@ -386,4 +387,4 @@ T Muelsyse::rpcCallSync(std::string url,
     }
 }
 
-}  // namespace tl::rpc
+}  // namespace tl::rest

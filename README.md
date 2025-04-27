@@ -1,6 +1,6 @@
 # Muelsyse
 
-本项目是Drogon的一个插件，用于简化Drogon项目中远程调用的开发。
+本项目是Drogon的一个插件，用于简化Drogon项目中HTTP客户端的开发。
 
 本插件是一个半成品，功能并不多，仅仅做到了基本能用的程度。
 
@@ -20,7 +20,7 @@ $ tree .
 ├── main.cc
 ├── plugins
 │   └── tl
-│       └── rpc
+│       └── rest
 │           ├── Muelsyse.cc
 │           └── Muelsyse.h
 ```
@@ -31,7 +31,7 @@ $ tree .
 
 ```cmake
 // ...
-aux_source_directory(plugins/tl/rpc RPC_SRC)
+aux_source_directory(plugins/tl/rest REST_SRC)
 // ...
 target_sources(${PROJECT_NAME}
                PRIVATE
@@ -40,7 +40,7 @@ target_sources(${PROJECT_NAME}
                ${FILTER_SRC}
                ${PLUGIN_SRC}
                ${MODEL_SRC}
-               ${RPC_SRC})
+               ${REST_SRC})
 ```
 
 3. 修改配置文件
@@ -53,7 +53,7 @@ target_sources(${PROJECT_NAME}
 {
   "plugins": [
     {
-      "name": "tl::rpc::Muelsyse",
+      "name": "tl::rest::Muelsyse",
       "config": {
         "function_list": []
       }
@@ -66,7 +66,7 @@ target_sources(${PROJECT_NAME}
 
 ```yaml
 plugins:
-  - name: tl::rpc::Muelsyse
+  - name: tl::rest::Muelsyse
     config:
       function_list: []
 ```
@@ -77,7 +77,7 @@ plugins:
 
 ```yaml
 plugins:
-  - name: tl::rpc::Muelsyse
+  - name: tl::rest::Muelsyse
     config:
       function_list:
         - name: getUserById # 函数的名字
@@ -102,14 +102,14 @@ class User {
 };
 
 User getUserById(int userId) {
-    RPC_CALL_SYNC(User, "_", userId);
+    REST_CALL_SYNC(User, "_", userId);
 }
 
 ```
 
-# RPC_CALL_SYNC
+# REST_CALL_SYNC
 
-`RPC_CALL_SYNC`这个宏的第一个参数需要是自定义函数的返回值类型，后续的参数每两个参数为一组。
+`REST_CALL_SYNC`这个宏的第一个参数需要是自定义函数的返回值类型，后续的参数每两个参数为一组。
 
 每一组参数的第一项需要是一个字符串，第二个参数是希望实际传递的值，它的类型比较灵活。
 
@@ -127,7 +127,7 @@ User getUserById(int userId) {
 
 ```yaml
 plugins:
-  - name: tl::rpc::Muelsyse
+  - name: tl::rest::Muelsyse
     config:
       function_list:
         - name: updatePassword # 函数的名字
@@ -137,7 +137,7 @@ plugins:
 
 ```cpp
 void updatePassword(int userId, const std::string &password) {
-    RPC_CALL_SYNC(void, "user_id", userId, "password", password);
+    REST_CALL_SYNC(void, "user_id", userId, "password", password);
 }
 
 ```
@@ -146,7 +146,7 @@ void updatePassword(int userId, const std::string &password) {
 
 ```yaml
 plugins:
-  - name: tl::rpc::Muelsyse
+  - name: tl::rest::Muelsyse
     config:
       function_list:
         - name: updateUserById # 函数的名字
@@ -156,7 +156,7 @@ plugins:
 
 ```cpp
 void updateUserById(int userId, const User &user) { // User类需要提供toJson成员函数
-    RPC_CALL_SYNC(void, "_", userId, "", user);
+    REST_CALL_SYNC(void, "_", userId, "", user);
 }
 
 ```
