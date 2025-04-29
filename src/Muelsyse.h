@@ -7,8 +7,8 @@
  * SNIFAE.
  *
  * @author tanglong3bf
- * @date 2025-04-27
- * @version v0.2.0
+ * @date 2025-04-29
+ * @version v0.3.0
  */
 
 #pragma once
@@ -38,7 +38,7 @@ inline std::string classTypeName() noexcept(false)
     {                                                                \
         func_name = __FUNCTION__;                                    \
     }                                                                \
-    return restCaller->restCallSync<ret_type>(func_name, {__VA_ARGS__});
+    return restCaller->restCallSync<ret_type>(func_name, {__VA_ARGS__})
 
 /**
  * @brief Custom functions defined using this macro can be placed in a namespace
@@ -90,11 +90,6 @@ Json::Value toJson(const HasToStringAndToJson auto &param)
 {
     return param.toJson();
 }
-
-template <typename T>
-Json::Value toJson(const std::unordered_map<std::string, T> &param);
-template <typename T>
-Json::Value toJson(const std::vector<T> &param);
 
 template <typename T>
 Json::Value toJson(const std::map<std::string, T> &param)
@@ -186,6 +181,34 @@ class Muelsyse : public drogon::Plugin<Muelsyse>
     void shutdown() override;
 
     /**
+     * @brief Calling remote procedures synchronously
+     *
+     * This function processes all parameters, and then calls the function with
+     * the same name.
+     *
+     * The args parameters are in a group of two. The first item of each group
+     * needs to be a string, and the second item is the actual parameter that
+     * needs to be passed.
+     *
+     * When the first item is "_", it means the second item is a dynamic path
+     * parameter. It needs to have a `toJson()` or `toString()` member function.
+     * `toJson()` is used first.
+     *
+     * When the first item is "", it means that the second item will be placed
+     * at the root of the request body. However, if the request body already has
+     * data before placing this item, an exception will be thrown.
+     *
+     * When the first item is a normal string, it means that the second item
+     * will be placed in a sub-item of the request body.
+     * @attention
+     * suggest: use REST_CALL_SYNC to call this function.
+     */
+    template <typename T>
+    T restCallSync(const std::string &funcName,
+                   const std::vector<Argument> &args) const noexcept(false);
+
+  private:
+    /**
      * @brief Register the url and HttpMethod of a function
      *
      * @param [in] func_name The name of a function.
@@ -219,46 +242,32 @@ class Muelsyse : public drogon::Plugin<Muelsyse>
     std::string jsonToStringInPath(const Json::Value &json) const
         noexcept(false);
 
-    /**
-     * @brief Calling remote procedures synchronously
-     *
-     * This function processes all parameters, and then calls the function with
-     * the same name.
-     *
-     * The args parameters are in a group of two. The first item of each group
-     * needs to be a string, and the second item is the actual parameter that
-     * needs to be passed.
-     *
-     * When the first item is "_", it means the second item is a dynamic path
-     * parameter. It needs to have a `toJson()` or `toString()` member function.
-     * `toJson()` is used first.
-     *
-     * When the first item is "", it means that the second item will be placed
-     * at the root of the request body. However, if the request body already has
-     * data before placing this item, an exception will be thrown.
-     *
-     * When the first item is a normal string, it means that the second item
-     * will be placed in a sub-item of the request body.
-     * @attention
-     * suggest: use REST_CALL_SYNC to call this function.
-     */
-    template <typename T>
-    T restCallSync(const std::string &funcName,
-                   const std::vector<Argument> &args) const noexcept(false);
-
-    /**
-     * @brief Calling remote procedures synchronously
-     * @attention
-     * suggest: use REST_CALL_SYNC to call this function.
-     */
     template <typename T>
     T restCallSync(std::string url,
                    drogon::HttpMethod httpMethod,
                    const Json::Value &requestBody) const noexcept(false);
 
+    /**
+     * @date 2025-04-29
+     * @since 0.3.0
+     */
+    drogon::HttpClientPtr getHttpClient(const std::string &url) const;
+
+    /**
+     * @date 2025-04-29
+     * @since 0.3.0
+     */
+    static std::mutex &getMapMutex()
+    {
+        static std::mutex mtx;
+        return mtx;
+    }
+
   private:
     std::unordered_map<std::string, std::pair<std::string, drogon::HttpMethod>>
         restMap_;
+    mutable std::unordered_map<std::string, drogon::HttpClientPtr>
+        httpClientMap_;
 };
 
 template <typename T>
@@ -346,7 +355,7 @@ T Muelsyse::restCallSync(std::string url,
         url.resize(pos);
     }
 
-    auto httpClient = drogon::HttpClient::newHttpClient(url);
+    auto httpClient = getHttpClient(url);
     auto req = drogon::HttpRequest::newHttpJsonRequest(requestBody);
     req->setPath(path);
     req->setMethod(httpMethod);

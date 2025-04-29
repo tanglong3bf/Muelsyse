@@ -117,3 +117,20 @@ string Muelsyse::jsonToStringInPath(const Json::Value &json) const
                       "JSON object cannot be converted to a string.");
     }
 }
+
+HttpClientPtr Muelsyse::getHttpClient(const string &url) const
+{
+    auto &mtx = getMapMutex();
+    {
+        std::lock_guard<std::mutex> lock(mtx);
+        auto iter = httpClientMap_.find(url);
+        if (iter != httpClientMap_.end())
+            return iter->second;
+    }
+    auto newHttpClient = HttpClient::newHttpClient(url);
+
+    std::lock_guard<std::mutex> lock(mtx);
+    auto ret =
+        httpClientMap_.emplace(std::make_pair(url, std::move(newHttpClient)));
+    return ret.first->second;
+}
