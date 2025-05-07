@@ -1,5 +1,5 @@
 cmake_minimum_required(VERSION 3.5)
-project(MuelsyseTest CXX)
+project(MuelsyseTestClient CXX)
 
 include(CheckIncludeFileCXX)
 
@@ -25,9 +25,7 @@ target_link_libraries(${PROJECT_NAME} PRIVATE Drogon::Drogon)
 message(STATUS "use c++20")
 
 aux_source_directory(unittests TEST_DIR)
-aux_source_directory(../src PLUGIN_SRC)
-
-# include_directories(../src)
+aux_source_directory(../../src PLUGIN_SRC)
 
 target_sources(${PROJECT_NAME}
                PRIVATE
@@ -35,7 +33,7 @@ target_sources(${PROJECT_NAME}
                ${PLUGIN_SRC})
 
 target_link_libraries(${PROJECT_NAME} PRIVATE gtest)
-SET(CMAKE_CXX_FLAGS_DEBUG "${CMAKE_CXX_FLAGS_DEBUG} -fconcepts -fprofile-arcs -ftest-coverage -fno-inline -g3 -O0")
+SET(CMAKE_CXX_FLAGS_DEBUG "${CMAKE_CXX_FLAGS_DEBUG} -fconcepts -fprofile-arcs -ftest-coverage -fno-inline -g3 -O1 -fno-omit-frame-pointer -fno-optimize-sibling-calls")
 
 file(COPY config.yaml DESTINATION ${CMAKE_BINARY_DIR})
 file(MAKE_DIRECTORY ${CMAKE_BINARY_DIR}/logs)

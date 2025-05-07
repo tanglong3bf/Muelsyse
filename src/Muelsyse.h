@@ -7,8 +7,8 @@
  * SNIFAE.
  *
  * @author tanglong3bf
- * @date 2025-04-29
- * @version v0.3.0
+ * @date 2025-05-07
+ * @version v0.3.1
  */
 
 #pragma once
@@ -90,6 +90,12 @@ Json::Value toJson(const HasToStringAndToJson auto &param)
 {
     return param.toJson();
 }
+
+template <typename T>
+Json::Value toJson(const std::unordered_map<std::string, T> &param);
+
+template <typename T>
+Json::Value toJson(const std::vector<T> &param);
 
 template <typename T>
 Json::Value toJson(const std::map<std::string, T> &param)

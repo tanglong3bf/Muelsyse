@@ -1,0 +1,28 @@
+# This is a YAML format configuration file
+app:
+  # number_of_threads: The number of IO threads, 1 by default, if the value is set to 0, the number of threads
+  # is the number of CPU cores
+  number_of_threads: 1
+# plugins: Define all plugins running in the application
+plugins:
+  - name: tl::rest::Muelsyse
+    config:
+      function_list:
+        - name: test
+          url: http://localhost:8000/test
+          http_method: post
+        - name: getUserById
+          url: http://localhost:8000/user/{user_id}
+          http_method: get
+        - name: vectorParam
+          url: http://localhost:8000/list
+          http_method: post
+        - name: root
+          url: http://localhost:8000/root
+          http_method: post
+        - name: complex
+          url: http://localhost:8000/regex/{id}/{name}
+          http_method: post
+        - name: foo::bar::funcWithNamespace
+          url: http://localhost:8000/funcWithNamespace
+          http_method: get
