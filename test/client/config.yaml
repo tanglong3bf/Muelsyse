@@ -8,21 +8,56 @@ plugins:
   - name: tl::rest::Muelsyse
     config:
       function_list:
-        - name: test
+        # 同步接口
+        - name: test::sync::test
           url: http://localhost:8000/test
           http_method: post
-        - name: getUserById
+        - name: test::sync::respIsNotJson
+          url: http://localhost:8000/test
+          http_method: post
+        - name: test::sync::jsonResp
           url: http://localhost:8000/user/{user_id}
           http_method: get
-        - name: vectorParam
-          url: http://localhost:8000/list
-          http_method: post
-        - name: root
-          url: http://localhost:8000/root
-          http_method: post
-        - name: complex
-          url: http://localhost:8000/regex/{id}/{name}
-          http_method: post
-        - name: foo::bar::funcWithNamespace
-          url: http://localhost:8000/funcWithNamespace
+        - name: test::sync::getUserById
+          url: http://localhost:8000/user/{user_id}
           http_method: get
+        # 异步接口
+        - name: test::async::test
+          url: http://localhost:8000/test
+          http_method: post
+        - name: test::async::respIsNotJson
+          url: http://localhost:8000/test
+          http_method: post
+        - name: test::async::jsonResp
+          url: http://localhost:8000/user/{user_id}
+          http_method: get
+        - name: test::async::getUserById
+          url: http://localhost:8000/user/{user_id}
+          http_method: get
+        # future接口
+        - name: test::future::test
+          url: http://localhost:8000/test
+          http_method: post
+        - name: test::future::jsonResp
+          url: http://localhost:8000/user/{user_id}
+          http_method: get
+custom_config:
+  function_list:
+    - name: false
+    - name: test
+    - name: test
+      url: false
+    - name: test
+      url: localhost:8000
+    - name: test
+      url: localhost:8000
+      http_method: false
+    - name: testWithoutProtocol
+      url: localhost:8000
+      http_method: post
+    - name: test
+      url: http://localhost:8000/{routed_param}
+      http_method: post
+    - name: testWithErrorBrace
+      url: http://localhost:8000/{routed_param
+      http_method: post

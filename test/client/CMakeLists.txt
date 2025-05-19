@@ -33,7 +33,7 @@ target_sources(${PROJECT_NAME}
                ${PLUGIN_SRC})
 
 target_link_libraries(${PROJECT_NAME} PRIVATE gtest)
-SET(CMAKE_CXX_FLAGS_DEBUG "${CMAKE_CXX_FLAGS_DEBUG} -fconcepts -fprofile-arcs -ftest-coverage -fno-inline -g3 -O1 -fno-omit-frame-pointer -fno-optimize-sibling-calls")
+SET(CMAKE_CXX_FLAGS_DEBUG "${CMAKE_CXX_FLAGS_DEBUG} -fconcepts -fprofile-arcs -ftest-coverage -fno-inline -g3 -O0 -fno-omit-frame-pointer -fno-optimize-sibling-calls")
 
 file(COPY config.yaml DESTINATION ${CMAKE_BINARY_DIR})
 file(MAKE_DIRECTORY ${CMAKE_BINARY_DIR}/logs)

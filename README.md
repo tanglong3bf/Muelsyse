@@ -1,12 +1,12 @@
 # Muelsyse
 
-本项目是Drogon的一个插件，用于简化Drogon项目中HTTP客户端的开发。
+本项目是[Drogon](https://github.com/drogonframework/drogon)的一个插件，用于简化Drogon项目中HTTP客户端的开发。
 
 本插件是一个半成品，功能并不多，仅仅做到了基本能用的程度。
 
-# 如何使用本插件
+## 如何使用本插件
 
-## 将插件导入到Drogon项目中
+### 将插件导入到Drogon项目中
 
 1. 将src目录下的两个文件拷贝到项目中
 
@@ -18,11 +18,11 @@ $ tree .
 ├── CMakeLists.txt
 ├── config.yaml
 ├── main.cc
-├── plugins
-│   └── tl
-│       └── rest
-│           ├── Muelsyse.cc
-│           └── Muelsyse.h
+└── plugins
+    └── tl
+        └── rest
+            ├── Muelsyse.cc
+            └── Muelsyse.h
 ```
 
 2. 修改`CMakeLists.txt`文件，将插件编译进项目中
@@ -71,7 +71,7 @@ plugins:
       function_list: []
 ```
 
-## 使用本插件
+### 使用本插件
 
 1. 修改配置文件，以yaml格式为例，json同理
 
@@ -91,7 +91,13 @@ plugins:
 
 class User {
   public:
-    void setByJson(const Json::Value &json); // 必须定义此函数，其余函数或成员无要求
+    // 如果希望作为函数的返回值，必须要提供此函数
+    void setByJson(const Json::Value &json);
+    // 如果希望作为函数的参数，以下两个函数需要提供其一
+    // 两个函数同时存在，则会优先使用`toJson()`
+    Json::Value toJson() const;
+    std::string toString() const;
+    // 其余函数无要求
     int getId() const;
     std::string getUsername() const;
     std::string getPassword() const;
@@ -101,64 +107,109 @@ class User {
     std::string password;
 };
 
-User getUserById(int userId) {
-    REST_CALL_SYNC(User, "_", userId);
+REST_FUNC_SYNC(User, getUserById, int userId)
+{
+    REST_CALL_SYNC(User, PATH_PARAM(userId));
 }
 
 ```
 
-# REST_CALL_SYNC
+## 一些例子
 
-`REST_CALL_SYNC`这个宏的第一个参数需要是自定义函数的返回值类型，后续的参数每两个参数为一组。
+### 同步接口
 
-每一组参数的第一项需要是一个字符串，第二个参数是希望实际传递的值，它的类型比较灵活。
-
-## 传递参数的方式
-
-在每一组参数中，第一个字符串参数用来指定后面参数的实际传递的位置：
-
-1. 当第一个参数为"\_"时，表明第二个参数是动态路径参数。
-2. 当第一个参数为""时，表明第二个参数直接以json格式作为请求体。
-3. 当第一个参数为其余的普通字符串时，表明第二个参数希望作为请求体的一个子项，以第一个参数为key，以第二个参数为value。
-
-**一些例子**：
-
-例子1
+**配置文件**
 
 ```yaml
 plugins:
   - name: tl::rest::Muelsyse
     config:
       function_list:
-        - name: updatePassword # 函数的名字
-          url: localhost:10000/user/update_password # 调用对应函数后实际调用的地址
-          http_method: put # 调用此接口时使用的Http请求方式，支持：get, post, put, delete
+        - name: getUserById
+          url: localhost:10000/user/{user_id}
+          http_method: get
 ```
+
+**函数定义**
 
 ```cpp
-void updatePassword(int userId, const std::string &password) {
-    REST_CALL_SYNC(void, "user_id", userId, "password", password);
+// User类需要有一个`setByJson(const Json::Value&)`成员函数
+REST_FUNC_SYNC(User, getUserById, int userId)
+{
+    REST_CALL_SYNC(User, PATH_PARAM(userId));
 }
-
 ```
 
-例子2
+**函数的使用**
+
+```cpp
+User user = getUserById(1);
+```
+
+### 回调式异步接口
+
+**配置文件**
 
 ```yaml
 plugins:
   - name: tl::rest::Muelsyse
     config:
       function_list:
-        - name: updateUserById # 函数的名字
-          url: localhost:10000/user/{user_id} # 调用对应函数后实际调用的地址
-          http_method: put # 调用此接口时使用的Http请求方式，支持：get, post, put, delete
+        - name: updateUser
+          url: localhost:10000/user
+          http_method: put
 ```
 
-```cpp
-void updateUserById(int userId, const User &user) { // User类需要提供toJson成员函数
-    REST_CALL_SYNC(void, "_", userId, "", user);
-}
+**函数定义**
 
+```cpp
+// User类需要有一个`Json::Value toJson() const`成员函数
+REST_FUNC_ASYNC(void, updateUser, const User& user)
+{
+    REST_CALL_ASYNC(void, ROOT_PARAM(userId));
+}
+```
+
+**函数的使用**
+
+```cpp
+// User user;
+updateUser(user, []() {
+    LOG_INFO << "update user success";
+}, [](const std::exception &e) {
+    LOG_ERROR << e.what();
+});
+```
+
+### future式异步接口
+
+**配置文件**
+
+```yaml
+plugins:
+  - name: tl::rest::Muelsyse
+    config:
+      function_list:
+        - name: getUserById
+          url: localhost:10000/user/{user_id}
+          http_method: get
+```
+
+**函数定义**
+
+```cpp
+// User类需要有一个`void setByJson(const Json::Value&)`成员函数
+REST_FUNC_FUTURE(User, getUserById, int userId)
+{
+    REST_CALL_FUTURE(User, PATH_PARAM(userId));
+}
+```
+
+**函数的使用**
+
+```cpp
+auto future = getUserById(1);
+User user = future.get();
 ```
 
 ## 参数支持的类型

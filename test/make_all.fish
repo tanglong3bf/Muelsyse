@@ -26,6 +26,8 @@ function build_project
     cd ../..
 end
 
+find . -name "*.gcda" -exec rm {} \;
+
 # 构建项目并运行
 build_project server
 build_project client
