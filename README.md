@@ -166,7 +166,7 @@ plugins:
 // User类需要有一个`Json::Value toJson() const`成员函数
 REST_FUNC_ASYNC(void, updateUser, const User& user)
 {
-    REST_CALL_ASYNC(void, ROOT_PARAM(userId));
+    REST_CALL_ASYNC(void, ROOT_PARAM(user));
 }
 ```
 
